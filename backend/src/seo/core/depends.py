@@ -1,5 +1,7 @@
 from typing import Final
 
+from fastembed import TextEmbedding
+from fastembed.common.model_description import ModelSource, PoolingType
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.language_models import ModelProfile
 from langchain_core.output_parsers import PydanticOutputParser
@@ -54,6 +56,23 @@ gemma_3_27b_it: ChatOpenAI = ChatOpenAI(
     base_url="https://llm.api.cloud.yandex.net/v1",
     max_retries=3,
 )
+qwen_3_5_35_b: ChatOpenAI = ChatOpenAI(
+    api_key=SecretStr(settings.yandexcloud.api_key),
+    model=f"gpt://{settings.yandexcloud.folder_id}/qwen3.5-35b-a3b-fp8",
+    base_url="https://llm.api.cloud.yandex.net/v1",
+    max_retries=3,
+)
+
+TextEmbedding.add_custom_model(
+    model="skatzR/USER-BGE-M3-ONNX-INT8",  # Используем имя ONNX-репозитория
+    pooling=PoolingType.CLS,
+    normalization=True,
+    sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),  # Загружаем модель с Hugging Face
+    dim=1024,
+    model_file="model_quantized.onnx",  # Указываем имя файла с моделью
+)
+
+embeddings = TextEmbedding(model_name="skatzR/USER-BGE-M3-ONNX-INT8")
 
 text_splitter: Final[TextSplitter] = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,

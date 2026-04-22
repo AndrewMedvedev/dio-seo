@@ -9,8 +9,8 @@ TIMEZONE = "Asia/Yekaterinburg"
 timezone = pytz.timezone(TIMEZONE)
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_PATH = BASE_DIR / ".env"
-CHROMA_PATH = BASE_DIR / ".chroma"
-SQLITE_PATH = BASE_DIR / "checkpoint.sqlite"
+CHROMA_PATH = BASE_DIR / "data" / ".chroma"
+SQLITE_PATH = BASE_DIR / "data" / "checkpoint.sqlite"
 INVITATION_EXPIRES_IN_DAYS = 7
 TEMPLATES_DIR = BASE_DIR / "templates"
 load_dotenv(ENV_PATH)
@@ -38,7 +38,15 @@ class GoogleSettings(BaseSettings):
     psi_api_key: str = "<API_KEY>"
 
 
+class RabbitSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="RABBITMQ_")
 
+    user: str = "user"
+    password: str = "password"
+
+    @property
+    def url(self) -> str:
+        return f"amqp://{self.user}:{self.password}@localhost:5672/"
 
 
 class YandexCloudSettings(BaseSettings):
