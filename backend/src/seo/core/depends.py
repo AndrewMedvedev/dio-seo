@@ -63,13 +63,15 @@ qwen_3_5_35_b: ChatOpenAI = ChatOpenAI(
     max_retries=3,
 )
 
+
 TextEmbedding.add_custom_model(
     model="skatzR/USER-BGE-M3-ONNX-INT8",  # Используем имя ONNX-репозитория
     pooling=PoolingType.CLS,
     normalization=True,
     sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),  # Загружаем модель с Hugging Face
     dim=1024,
-    model_file="model_quantized.onnx",  # Указываем имя файла с моделью
+    model_file="model_quantized.onnx",
+    # Указываем имя файла с моделью
 )
 
 embeddings = TextEmbedding(model_name="skatzR/USER-BGE-M3-ONNX-INT8")

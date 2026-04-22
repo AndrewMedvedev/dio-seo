@@ -33,6 +33,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 # ────────────────────────────────────────────────
 # Стадия 2 — финальный образ (runtime)
 # ────────────────────────────────────────────────
+# ────────────────────────────────────────────────
+# Стадия 2 — финальный образ (runtime)
+# ────────────────────────────────────────────────
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -45,6 +48,10 @@ COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+# 👉 добавь это
+RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('skatzR/USER-BGE-M3-ONNX-INT8', local_dir='/models')"
+
+# потом уже код
 COPY . .
 
 CMD ["python", "main.py"]
