@@ -33,25 +33,29 @@ ENV PATH="/app/.venv/bin:$PATH"
 # ────────────────────────────────────────────────
 # Стадия 2 — финальный образ (runtime)
 # ────────────────────────────────────────────────
-# ────────────────────────────────────────────────
-# Стадия 2 — финальный образ (runtime)
-# ────────────────────────────────────────────────
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    FASTEMBED_CACHE_DIR=/app/cache/fastembed \
+    FASTEMBED_CACHE_PATH=/app/cache/fastembed
+
 
 WORKDIR /app
+
+# Создаём директорию для кэша моделей и даём права на запись
+RUN mkdir -p /app/cache/fastembed && \
+    chmod -R 777 /app/cache
 
 # Копируем виртуальное окружение из builder
 COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 👉 добавь это
-RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('skatzR/USER-BGE-M3-ONNX-INT8', local_dir='/models')"
-
-# потом уже код
+# Копируем код приложения
 COPY . .
+
+# Опционально: предзагрузить модель во время сборки (раскомментируйте, если нужно)
+# RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 CMD ["python", "main.py"]

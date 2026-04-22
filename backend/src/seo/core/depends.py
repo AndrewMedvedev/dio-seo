@@ -1,6 +1,5 @@
 from typing import Final
 
-from fastembed import TextEmbedding
 from fastembed.common.model_description import ModelSource, PoolingType
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.language_models import ModelProfile
@@ -12,6 +11,8 @@ from langchain_text_splitters import (
     TextSplitter,
 )
 from pydantic import SecretStr
+
+from fastembed import TextEmbedding
 
 from ...settings import settings
 from ..agents.prompts import PROMPT_CWV, PROMPT_MARKDOWN, PROMPT_RESULT, PROMPT_SUMMARIZE_CHAT
@@ -33,7 +34,7 @@ MININUM_COSINE_SIMILARITY = 0.45
 
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 50
-
+FASTEMBED_CACHE_DIR = "/app/cache/fastembed"
 
 yandex_gpt: ChatOpenAI = ChatOpenAI(
     api_key=SecretStr(settings.yandexcloud.api_key),
@@ -65,16 +66,17 @@ qwen_3_5_35_b: ChatOpenAI = ChatOpenAI(
 
 
 TextEmbedding.add_custom_model(
-    model="skatzR/USER-BGE-M3-ONNX-INT8",  # Используем имя ONNX-репозитория
+    model="skatzR/USER-BGE-M3-ONNX-INT8",
     pooling=PoolingType.CLS,
     normalization=True,
-    sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),  # Загружаем модель с Hugging Face
+    sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),
     dim=1024,
     model_file="model_quantized.onnx",
-    # Указываем имя файла с моделью
 )
 
-embeddings = TextEmbedding(model_name="skatzR/USER-BGE-M3-ONNX-INT8")
+embeddings = TextEmbedding(
+    model_name="skatzR/USER-BGE-M3-ONNX-INT8", cache_dir="/app/cache/fastembed"
+)
 
 text_splitter: Final[TextSplitter] = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,

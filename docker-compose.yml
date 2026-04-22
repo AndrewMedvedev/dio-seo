@@ -47,7 +47,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     volumes:
-      - backend_db:/app/data
+      - backend_db:/app/data          # уже существующий том для данных приложения
+      - model_cache:/app/cache        # новый том для кэша моделей
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -69,3 +70,4 @@ services:
 volumes:
   postgres_data:
   backend_db:
+  model_cache:    # объявляем новый том
