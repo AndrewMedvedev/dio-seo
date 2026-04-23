@@ -12,7 +12,7 @@ import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from ...settings import CHROMA_PATH
-from ..core.depends import embeddings
+from ..rest import get_embeddings
 
 INDEX_NAME = "main-index"
 
@@ -69,8 +69,7 @@ async def indexing(
 
     # Получаем эмбеддинги (можно оставить синхронно, если hf_model быстрый,
     # или сделать асинхронным при необходимости)
-    embed = embeddings.embed(chunks)
-    embeddings_list = [i.tolist() for i in embed]  # type: ignore  # noqa: PGH003
+    embeddings_list = await get_embeddings(chunks)
 
     # Подготавливаем метаданные
     metadatas = [metadata.copy() if metadata else {} for _ in chunks]
@@ -146,8 +145,7 @@ async def retrieve(
     collection = client.get_collection(INDEX_NAME)
     logger.info("Retrieving for query: '%s...'", query[:50])
 
-    # embedding = await get_embeddings([query])
-    embedding = embeddings.query_embed(query)
+    embedding = await get_embeddings([query])
     params = {"query_embeddings": [i.tolist() for i in embedding], "n_results": n_results}  # type: ignore  # noqa: PGH003
 
     if metadata_filter:

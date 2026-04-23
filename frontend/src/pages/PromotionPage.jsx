@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Maximize2,
   Minimize2,
+  CheckCircle,
 } from "lucide-react"; // добавим иконки для расширения/сворачивания
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -20,12 +21,19 @@ import { useChat } from "./hooks/useChat";
 import { useHistory } from "./hooks/useHistory";
 import { usePromotionActions } from "./hooks/usePromotionActions";
 import MarkdownMessage from "../components/Message";
+import HistoryContentView from "../components/HistoryContentView";
 
 export default function PromotionPage() {
   const state = usePromotionState();
   const history = useHistory();
   const chat = useChat(state.url, state.generationId);
   const actions = usePromotionActions(state.url, state.generationId);
+
+  // Состояния для просмотра истории
+  const [viewMode, setViewMode] = useState("normal"); // 'normal' | 'history'
+  const [historySeoData, setHistorySeoData] = useState(null);
+  const [historyAioData, setHistoryAioData] = useState(null);
+  const [historyGenerationId, setHistoryGenerationId] = useState(null);
 
   // Локальное состояние для расширения чата
   const [isChatExpanded, setIsChatExpanded] = useState(false);
@@ -39,17 +47,48 @@ export default function PromotionPage() {
       : "Посмотреть AIO контент";
   };
 
-  const handleHistorySelect = (item) => {
-    state.setContent(item.result);
-    state.setAiContent(item.result);
-    state.setShowAiContent(false);
-    history.toggleHistory();
-    if (item.result?.url) {
-      state.setUrl(item.result.url);
+  const handleHistorySelect = (historyItem) => {
+    const result = historyItem.result;
+    const generationId = result?.generation_id;
+
+    // Всегда берём SEO-данные (даже если в результате есть aio-части)
+    const seoData = result?.seo_result ? { ...result } : result;
+
+    // Ищем AIO с таким же generation_id (но не показываем его как отдельную запись)
+    let aioData = null;
+    if (generationId && Array.isArray(history.historyData)) {
+      const aioEntry = history.historyData.find(
+        (item) =>
+          item.result?.generation_id === generationId &&
+          item.result?.new_content &&
+          Object.keys(item.result.new_content).length > 0,
+      );
+      if (aioEntry) {
+        aioData = aioEntry.result;
+      }
     }
+
+    setHistorySeoData(seoData);
+    setHistoryAioData(aioData);
+    setHistoryGenerationId(generationId);
+    setViewMode("history");
+
+    state.setContent(seoData);
+    state.setAiContent(aioData);
+    state.setShowAiContent(false);
+
+    if (result?.url) state.setUrl(result.url);
+
+    history.toggleHistory();
   };
 
   const onAnalyze = () => {
+    // Важно: сбрасываем режим истории перед новым анализом
+    setViewMode("normal");
+    setHistorySeoData(null);
+    setHistoryAioData(null);
+    setHistoryGenerationId(null);
+
     actions.handleAnalyze(
       state.setContent,
       state.setAiContent,
@@ -60,6 +99,14 @@ export default function PromotionPage() {
   };
 
   const onGenerateAIContent = () => {
+    // Сбрасываем режим истории, если вдруг мы были в нём
+    if (viewMode === "history") {
+      setViewMode("normal");
+      setHistorySeoData(null);
+      setHistoryAioData(null);
+      setHistoryGenerationId(null);
+    }
+
     actions.generateAIContent(
       state.setAiContent,
       state.setShowAiContent,
@@ -68,7 +115,8 @@ export default function PromotionPage() {
     );
   };
 
-  const showRightPanel = state.content && !history.showHistory;
+  const showRightPanel =
+    state.content && !history.showHistory && viewMode !== "history";
 
   // Определяем классы для плавающего блока чата в зависимости от состояния expanded
   const chatContainerClasses = `fixed top-28 ${
@@ -157,90 +205,105 @@ export default function PromotionPage() {
                 ) : (
                   <>
                     <div className="grid gap-6">
-                      {history.historyData.map((item, index) => {
-                        const date = new Date(item.created_at);
-                        const seoScore =
-                          item.result?.seo_result?.seo?.score ?? null;
-                        let h1 = "Анализ сайта";
-                        if (item.result?.content_generation_result?.h1) {
-                          h1 = item.result.content_generation_result.h1;
-                        } else if (
-                          item.result?.new_content?.transformed_content
-                        ) {
-                          const match =
-                            item.result.new_content.transformed_content.match(
-                              /^#\s(.+)$/m,
-                            );
-                          if (match) h1 = match[1];
-                        }
-                        const summary =
-                          item.result?.seo_result?.overall_summary ||
-                          (item.result?.new_content?.transformed_content
-                            ? item.result.new_content.transformed_content.slice(
-                                0,
-                                220,
-                              ) + "..."
-                            : "SEO анализ и генерация контента");
-                        return (
-                          <div
-                            key={item.id || index}
-                            onClick={() => handleHistorySelect(item)}
-                            className="group bg-dark-800 border border-neutral-800 hover:border-red-500/50 rounded-3xl p-6 transition-all cursor-pointer hover:shadow-xl"
-                          >
-                            <div className="flex flex-col lg:flex-row gap-6">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-3">
-                                  <div className="px-3 py-1 text-xs bg-neutral-700 rounded-full text-neutral-400 flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    {format(date, "dd MMMM yyyy", {
-                                      locale: ru,
-                                    })}
+                      {history.historyData
+                        .filter((item) => {
+                          // Показываем только записи, у которых есть seo_result
+                          // Или те, у которых нет new_content (чтобы исключить чистые AIO)
+                          return (
+                            item.result?.seo_result || !item.result?.new_content
+                          );
+                        })
+                        .map((item, index) => {
+                          const date = new Date(item.created_at);
+                          const seoScore =
+                            item.result?.seo_result?.seo?.score ?? null;
+
+                          let h1 = "Анализ сайта";
+                          if (item.result?.content_generation_result?.h1) {
+                            h1 = item.result.content_generation_result.h1;
+                          } else if (item.result?.seo_result?.overall_summary) {
+                            h1 = "SEO анализ";
+                          }
+
+                          const summary =
+                            item.result?.seo_result?.overall_summary ||
+                            "SEO анализ сайта";
+
+                          // Проверяем, есть ли AIO для этой записи
+                          const hasAio = history.historyData.some(
+                            (aioItem) =>
+                              aioItem.result?.generation_id ===
+                                item.result?.generation_id &&
+                              aioItem.result?.new_content,
+                          );
+
+                          return (
+                            <div
+                              key={item.id || index}
+                              onClick={() => handleHistorySelect(item)}
+                              className="group bg-dark-800 border border-neutral-800 hover:border-red-500/50 rounded-3xl p-6 transition-all cursor-pointer hover:shadow-xl"
+                            >
+                              <div className="flex flex-col lg:flex-row gap-6">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="px-3 py-1 text-xs bg-neutral-700 rounded-full text-neutral-400 flex items-center gap-1">
+                                      <Calendar className="w-3.5 h-3.5" />
+                                      {format(date, "dd MMMM yyyy", {
+                                        locale: ru,
+                                      })}
+                                    </div>
+                                    <div className="px-3 py-1 text-xs bg-neutral-700 rounded-full text-neutral-400 flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      {format(date, "HH:mm")}
+                                    </div>
                                   </div>
-                                  <div className="px-3 py-1 text-xs bg-neutral-700 rounded-full text-neutral-400 flex items-center gap-1">
-                                    <Clock className="w-3.5 h-3.5" />
-                                    {format(date, "HH:mm")}
-                                  </div>
+
+                                  <h3 className="text-xl font-semibold mb-2 group-hover:text-red-400 transition-colors line-clamp-2">
+                                    {h1}
+                                  </h3>
+                                  <p className="text-neutral-400 text-sm line-clamp-3">
+                                    {summary}
+                                  </p>
+
+                                  {seoScore && (
+                                    <div className="mt-4 text-sm">
+                                      SEO:{" "}
+                                      <span
+                                        className={`font-semibold ${seoScore >= 70 ? "text-emerald-400" : "text-amber-400"}`}
+                                      >
+                                        {seoScore}/100
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {hasAio && (
+                                    <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-emerald-400">
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      Доступен AIO-контент
+                                    </div>
+                                  )}
                                 </div>
-                                <h3 className="text-xl font-semibold mb-2 group-hover:text-red-400 transition-colors line-clamp-2">
-                                  {h1}
-                                </h3>
-                                <p className="text-neutral-400 text-sm line-clamp-3">
-                                  {summary}
-                                </p>
-                                {seoScore && (
-                                  <div className="mt-4 text-sm">
-                                    SEO:{" "}
-                                    <span
-                                      className={`font-semibold ${
-                                        seoScore >= 70
-                                          ? "text-emerald-400"
-                                          : "text-amber-400"
-                                      }`}
-                                    >
-                                      {seoScore}/100
-                                    </span>
-                                  </div>
-                                )}
+
+                                <div className="lg:w-40 flex items-end">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleHistorySelect(item);
+                                    }}
+                                    className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-2xl text-sm font-medium flex items-center justify-center gap-2"
+                                  >
+                                    Открыть
+                                    <ArrowRight className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="lg:w-40 flex items-end">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleHistorySelect(item);
-                                  }}
-                                  className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-2xl text-sm font-medium flex items-center justify-center gap-2"
-                                >
-                                  Открыть
-                                  <ArrowRight className="w-4 h-4" />
-                                </button>
+
+                              <div className="mt-4 pt-4 border-t border-neutral-700 text-xs text-neutral-500 truncate font-mono">
+                                {item.result?.url}
                               </div>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-neutral-700 text-xs text-neutral-500 truncate font-mono">
-                              {item.result?.url}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                     {history.hasMore ? (
                       <div className="flex justify-center mt-8">
@@ -275,6 +338,12 @@ export default function PromotionPage() {
               </div>
             ) : state.showAiContent && state.aiContent ? (
               <AioContentView aiContent={state.aiContent} />
+            ) : viewMode === "history" ? (
+              <HistoryContentView
+                seoData={historySeoData}
+                aioData={historyAioData}
+                generationId={historyGenerationId}
+              />
             ) : (
               <SeoReport content={state.content} />
             )}

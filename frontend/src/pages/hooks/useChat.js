@@ -120,19 +120,16 @@ export function useChat(url, generationId) {
     }
   };
 
+  // Полная очистка всей истории чатов
   const clearCurrentChat = () => {
-    if (!url || !generationId) return;
-
-    const historyKey = `${url}_${generationId}`;
-
-    setChatHistory((prev) => {
-      const updated = { ...prev };
-      delete updated[historyKey];
-      return updated;
-    });
-
-    // После очистки сразу показываем приветствие
+    // 1. Очищаем состояние
+    setChatHistory({});
     setMessages([WELCOME_MESSAGE]);
+
+    // 2. Полностью удаляем весь ключ из localStorage
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+
+    console.log("✅ Вся история чата очищена");
   };
 
   const handleKeyPress = (e) => {

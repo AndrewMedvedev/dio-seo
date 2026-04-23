@@ -226,7 +226,7 @@ const Documentation = () => {
           </Link>
 
           <p className="mt-6 text-zinc-500">
-            Просто вставьте URL и получите результат за секунды
+            Просто вставьте URL и получите результат
           </p>
         </div>
       </div>

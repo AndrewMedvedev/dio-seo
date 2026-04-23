@@ -47,7 +47,9 @@ async def get_search_queries(
 async def get_embeddings(texts: list[str]):
     async with (
         ClientSession() as session,
-        session.post("/embeddings", json={"texts": texts}) as response,
+        session.post(
+            "http://host.docker.internal:8888/embeddings", json={"texts": texts}, ssl=False
+        ) as response,
     ):
         response.raise_for_status()
         result = await response.json()

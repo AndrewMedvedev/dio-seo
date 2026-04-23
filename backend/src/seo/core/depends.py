@@ -1,6 +1,5 @@
 from typing import Final
 
-from fastembed.common.model_description import ModelSource, PoolingType
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.language_models import ModelProfile
 from langchain_core.output_parsers import PydanticOutputParser
@@ -11,8 +10,6 @@ from langchain_text_splitters import (
     TextSplitter,
 )
 from pydantic import SecretStr
-
-from fastembed import TextEmbedding
 
 from ...settings import settings
 from ..agents.prompts import PROMPT_CWV, PROMPT_MARKDOWN, PROMPT_RESULT, PROMPT_SUMMARIZE_CHAT
@@ -65,18 +62,16 @@ qwen_3_5_35_b: ChatOpenAI = ChatOpenAI(
 )
 
 
-TextEmbedding.add_custom_model(
-    model="skatzR/USER-BGE-M3-ONNX-INT8",
-    pooling=PoolingType.CLS,
-    normalization=True,
-    sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),
-    dim=1024,
-    model_file="model_quantized.onnx",
-)
+# TextEmbedding.add_custom_model(
+#     model="skatzR/USER-BGE-M3-ONNX-INT8",
+#     pooling=PoolingType.CLS,
+#     normalization=True,
+#     sources=ModelSource(hf="skatzR/USER-BGE-M3-ONNX-INT8"),
+#     dim=1024,
+#     model_file="model_quantized.onnx",
+# )
 
-embeddings = TextEmbedding(
-    model_name="skatzR/USER-BGE-M3-ONNX-INT8", cache_dir="/app/cache/fastembed"
-)
+# embeddings = TextEmbedding(model_name="skatzR/USER-BGE-M3-ONNX-INT8")
 
 text_splitter: Final[TextSplitter] = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
