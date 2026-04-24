@@ -5,7 +5,7 @@ services:
       - CONNECTION_TIMEOUT=60000
       - KEEP_ALIVE=true
     ports:
-      - "3000:3000"
+      - "3999:3999"
 
   postgres:
     image: postgres:16.9
