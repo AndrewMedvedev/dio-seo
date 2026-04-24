@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Базовый URL для всех запросов
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "http://localhost:8999";
 
 // Создаём экземпляр axios (apiClient)
 export const apiClient = axios.create({

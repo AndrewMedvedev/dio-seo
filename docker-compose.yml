@@ -51,7 +51,7 @@ services:
       - model_cache:/app/cache      # новый том для кэша моделей
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8999:8999"
     env_file:
       - .env
     depends_on:
@@ -66,6 +66,11 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+networks:
+  default:
+    external: true
+    name: shared
 
 volumes:
   postgres_data:

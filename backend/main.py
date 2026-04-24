@@ -78,4 +78,4 @@ if __name__ == "__main__":
     command.upgrade(alembic_cfg, "head")
     print("Миграции успешно применены.")  # noqa: T201
     logging.basicConfig(level=logging.INFO)
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")  # noqa: S104
+    uvicorn.run(app, host="0.0.0.0", port=8999, log_level="debug")  # noqa: S104

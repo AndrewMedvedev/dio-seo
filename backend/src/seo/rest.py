@@ -48,7 +48,7 @@ async def get_embeddings(texts: list[str]):
     async with (
         ClientSession() as session,
         session.post(
-            "http://host.docker.internal:8888/embeddings", json={"texts": texts}, ssl=False
+            "http://embeddings:8888/embeddings", json={"texts": texts}, ssl=False
         ) as response,
     ):
         response.raise_for_status()
